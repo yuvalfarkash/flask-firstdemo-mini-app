@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>ניהול משימות Flask</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        input[type="text"] { width: 70%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        ul { list-style: none; padding: 0; margin-top: 20px; }
+        li { background: #eee; margin: 5px 0; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .completed { text-decoration: line-through; color: gray; }
+        .error-msg { color: red; font-size: 0.9em; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>הרשימה שלי 🎯</h1>
+    
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="taskTitle" placeholder="מה המשימה הבאה?">
+        <button onclick="addTask()">הוסף</button>
+    </div>
+    <p id="errorBox" class="error-msg"></p>
+
+    <ul id="taskList">
+        </ul>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:5000/tasks";
+
+    // פונקציה לטעינת כל המשימות מה-API
+    async function loadTasks() {
+        try {
+            const response = await fetch(API_URL);
+            const tasks = await response.json();
+            const list = document.getElementById('taskList');
+            list.innerHTML = "";
+
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span class="${task.completed ? 'completed' : ''}">${task.title}</span>
+                    <small>ID: ${task.id.substring(0,5)}...</small>
+                `;
+                list.appendChild(li);
+            });
+        } catch (err) {
+            console.error("שגיאה בטעינת המשימות:", err);
+        }
+    }
+
+    // פונקציה להוספת משימה חדשה
+    async function addTask() {
+        const titleInput = document.getElementById('taskTitle');
+        const errorBox = document.getElementById('errorBox');
+        errorBox.style.display = "none";
+
+        const taskData = {
+            title: titleInput.value
+        };
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(taskData)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                // כאן אנחנו משתמשים במבנה השגיאה שבנית ב-errors.py!
+                errorBox.innerText = `שגיאה (${result.status}): ${result.message}`;
+                errorBox.style.display = "block";
+            } else {
+                titleInput.value = "";
+                loadTasks(); // רענון הרשימה
+            }
+        } catch (err) {
+            errorBox.innerText = "לא ניתן להתחבר לשרת ה-Flask";
+            errorBox.style.display = "block";
+        }
+    }
+
+    // טעינה ראשונית
+    loadTasks();
+</script>
+
+</body>
+</html>
